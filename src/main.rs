@@ -1,78 +1,33 @@
-use rocket::serde::json::serde_json::json;
-use rocket::serde::json::serde_json::value::Value;
-use rocket::{debug, catch, get, launch, post, routes, catchers, State};
-use rocket::http::Status;
-use rocket::serde::json::{Json};
-use serde::{Deserialize, Serialize};
-use std::sync::Mutex;
-use std::collections::HashMap;
+pub mod loaders;
+pub mod controllers;
+mod models;
+mod services;
+mod repository;
 
-#[derive(Deserialize, Serialize, Debug)]
-struct User {
-    id: usize,
-    username: String,
-    password: Option<String>,
-}
+use std::sync::{Mutex, Arc};
 
-type UserMap = Mutex<HashMap<usize, String>>;
-
-#[get("/")]
-async fn index() -> &'static str {
-    "This is the base route!"
-}
-
-#[get("/")]
-async fn hidden_index() -> &'static str {
-    "This is the /hidden base route!"
-}
-
-#[get("/hello/<name>", rank = 2)]
-fn hello(name: String) -> String {
-    format!("Hello, user {}!", name)
-}
-
-#[get("/hello/<id>")]
-fn hello_id(id: u32) -> String {
-    format!("Hello, {}!", id)
-}
-
-#[post("/user", format = "application/json", data = "<user>")]
-fn new_user(user: Json<User>, map: &State<UserMap>) -> (Status, Result<Json<User>, ()>) {
-    let mut hashmap = map.lock().expect("Map Locked");
-    if hashmap.contains_key(&user.id) {
-        debug!("Aici\n");
-        (Status::Unauthorized, Ok(user))
-    } else {
-        hashmap.insert(user.id, String::from(&user.username));
-        (Status::Ok, Ok(user))
-    }
-}
-
-#[get("/user/<id>")]
-fn get_user(id: usize, map: &State<UserMap>) -> Option<Json<User>> {
-    let hashmap = map.lock().unwrap();
-    hashmap.get(&id).map(|name| {
-        Json(User {
-            id,
-            username: String::from(name),
-            password: None,
-        })
-    })
-}
-
-#[catch(404)]
-fn not_found() -> Value {
-    json!({
-        "Status": "Error",
-        "Reason": "Requested user was not found."
-    })
-}
+use loaders::catchers;
+use repository::{message_repository::{MessageRepository}, user_repository::{UserRepository}};
+use rocket::{launch, routes, catchers};
+use services::message_service::MessageService;
 
 #[launch]
 fn rocket() -> _ {
+    let safe_message_repository = Arc::new(Mutex::new(MessageRepository::new()));
+    let safe_user_repository = Arc::new(Mutex::new(UserRepository::new()));
+    let safe_message_service = Arc::new(Mutex::new(MessageService::new(safe_message_repository.clone(), safe_user_repository.clone())));
+    let safe_user_service = safe_user_repository.clone();
+
     rocket::build()
-        .mount("/", routes![index, hello, hello_id, new_user, get_user])
-        .mount("/hidden", routes![hidden_index])
-        .register("/", catchers![not_found])
-        .manage(Mutex::new(HashMap::<usize, String>::new()))
+        .mount("/", routes![
+            controllers::message_controller::send_message,
+            controllers::message_controller::get_messages,
+            controllers::user_controller::create_user,
+        ])
+        .register("/", catchers![
+            catchers::not_found,
+            catchers::internal_server_error
+        ])
+        .manage(safe_message_service)
+        .manage(safe_user_service)
 }
