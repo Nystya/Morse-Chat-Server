@@ -1,0 +1,8 @@
+version: '3.8'
+
+services:
+  
+  server:
+    image: shinr3x/server_morse_rust:latest
+    ports:
+      - 8000:8000
