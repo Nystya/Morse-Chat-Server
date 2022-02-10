@@ -18,6 +18,9 @@ fn rocket() -> _ {
     let safe_message_service = Arc::new(Mutex::new(MessageService::new(safe_message_repository.clone(), safe_user_repository.clone())));
     let safe_user_service = safe_user_repository.clone();
 
+    let idx: i32 = 0;
+    let safe_idx = Arc::new(Mutex::new(idx));
+
     rocket::build()
         .mount("/", routes![
             controllers::message_controller::send_message,
@@ -30,4 +33,5 @@ fn rocket() -> _ {
         ])
         .manage(safe_message_service)
         .manage(safe_user_service)
+        .manage(safe_idx)
 }
