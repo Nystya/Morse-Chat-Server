@@ -4,11 +4,13 @@ mod models;
 mod services;
 mod repository;
 
+use std::net::Ipv4Addr;
+use std::path::PathBuf;
 use std::sync::{Mutex, Arc};
 
 use loaders::catchers;
 use repository::{message_repository::{MessageRepository}, user_repository::{UserRepository}};
-use rocket::{launch, routes, catchers};
+use rocket::{launch, routes, catchers, Config};
 use services::message_service::MessageService;
 
 #[launch]
@@ -21,7 +23,13 @@ fn rocket() -> _ {
     let idx: i32 = 0;
     let safe_idx = Arc::new(Mutex::new(idx));
 
+    let config = Config {
+        address: Ipv4Addr::new(0, 0, 0, 0).into(),
+        ..Config::debug_default()
+    };
+
     rocket::build()
+        .configure(config)
         .mount("/", routes![
             controllers::message_controller::send_message,
             controllers::message_controller::get_messages,
