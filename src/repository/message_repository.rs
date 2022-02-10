@@ -25,13 +25,8 @@ impl MessageRepository {
         let mut db = self.database.lock().expect("Cannot access database");
         
         db.get_mut(&user.id).map(|mq| {
-            if let Some(message) = mq.front() {
-                println!("{:?}", message);
-            }
-
             let messages = mq.drain(..).collect::<Vec<Message>>();
 
-            println!("{:?}", messages);
             messages
         })
     }
