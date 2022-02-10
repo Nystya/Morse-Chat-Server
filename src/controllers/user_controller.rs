@@ -1,10 +1,10 @@
 use std::sync::{Arc, Mutex};
 
-use rocket::{post, http::Status, serde::json::Json, State};
+use rocket::{get, http::Status, serde::json::Json, State};
 
 use crate::{models::user::User, repository::user_repository::UserRepository};
 
-#[post("/users")]
+#[get("/users")]
 pub async fn create_user(
     idx_lock: &State<Arc<Mutex<i32>>>,
     user_service_lock: &State<Arc<Mutex<UserRepository>>>
