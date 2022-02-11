@@ -8,6 +8,11 @@ This server features two services:
 
 Whan an user sends a new message, the message will be broadcasted to all other users.
 
+The service uses a HashMap<id, DequeVec<Message>> to store a queue of messages that 
+the an user can retrieve. When a message is broadcasted, it is added to all users' (
+other than the sender) queue and can be retrieved by users by calling the get_messages
+endpoint.
+
 The intended usage of this service is to allow a MicrobitV2 client to broadcast messages
 to all other clients. Due to limitations on the client's user interface - Microbitv2 only
 features two buttons and a touch button to interact with the UI - this service was configured
